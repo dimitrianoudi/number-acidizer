@@ -1,0 +1,96 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  AWS_ROLE_TO_ASSUME: ${{ vars.AWS_ROLE_TO_ASSUME }}
+  PROJECT: number-acidizer
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        working-directory: infra
+        run: terraform init
+
+      - name: Create ECR (first-time or ensure exists)
+        working-directory: infra
+        run: terraform apply -auto-approve -target=aws_ecr_repository.backend
+
+      - name: Read ECR Repo URL
+        id: ecr
+        working-directory: infra
+        run: echo "repo=$(terraform output -raw ecr_repo_url)" >> $GITHUB_OUTPUT
+
+      - name: Get AWS Account ID
+        id: acct
+        run: |
+          echo "id=$(aws sts get-caller-identity --query Account --output text)" >> $GITHUB_OUTPUT
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build & Push Backend Image
+        working-directory: backend
+        run: |
+          IMAGE=${{ steps.ecr.outputs.repo }}:${{ github.sha }}
+          echo "IMAGE_URI=$IMAGE" >> $GITHUB_ENV
+          npm ci
+          npm run build
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      - name: Terraform Apply (full infra + Lambda w/ image)
+        working-directory: infra
+        env:
+          IMAGE_URI: ${{ env.IMAGE_URI }}
+        run: terraform apply -auto-approve -var="lambda_image_uri=$IMAGE_URI"
+
+      - name: Get API Base URL
+        id: api
+        working-directory: infra
+        run: echo "api=$(terraform output -raw api_base_url)" >> $GITHUB_OUTPUT
+
+      - name: Get Frontend Bucket & CF Domain
+        id: fe
+        working-directory: infra
+        run: |
+          echo "bucket=$(terraform output -raw s3_bucket_name)" >> $GITHUB_OUTPUT
+          echo "cf=$(terraform output -raw cloudfront_domain)" >> $GITHUB_OUTPUT
+
+      - name: Build Frontend
+        working-directory: frontend
+        run: |
+          echo "VITE_API_BASE_URL=${{ steps.api.outputs.api }}" > .env
+          npm ci
+          npm run build
+
+      - name: Upload Frontend to S3
+        run: |
+          aws s3 sync frontend/dist s3://${{ steps.fe.outputs.bucket }}/ --delete
+
+      - name: Invalidate CloudFront Cache
+        run: |
+          aws cloudfront create-invalidation --distribution-id $(aws cloudfront list-distributions --query "DistributionList.Items[?DomainName=='${{ steps.fe.outputs.cf }}'].Id | [0]" --output text) --paths "/*"
