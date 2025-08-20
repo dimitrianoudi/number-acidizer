@@ -36,7 +36,9 @@ data "aws_iam_policy_document" "ddb_policy" {
   statement {
     actions = [
       "dynamodb:TransactWriteItems",
-      "dynamodb:GetItem"
+      "dynamodb:GetItem",
+      "dynamodb:PutItem",
+      "dynamodb:UpdateItem"
     ]
     resources = [
       aws_dynamodb_table.counter.arn,
