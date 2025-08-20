@@ -109,10 +109,29 @@ CI/CD: GitHub Actions with OIDC → builds image, Terraform apply, builds fronte
 
 ## How to test
 
+ Record URLs:
+
 ```bash
-API: GET/POST /number as above; concurrency & idempotency sample commands included.
-Frontend: polling ensures eventual consistency across tabs; large jumps animate.
+  API: https://gee6k5fvrb.execute-api.eu-north-1.amazonaws.com
+  Site: https://d2mvlfqf4mq6m.cloudfront.net
 ```
+
+
+
+Quick API test
+
+```bash
+  API="https://gee6k5fvrb.execute-api.eu-north-1.amazonaws.com"
+  curl -s "$API/number"
+  curl -s -XPOST "$API/number" -H 'content-type: application/json' -d '{"action":"increment"}'
+```
+
+```bash
+  API: GET/POST /number as above; concurrency & idempotency sample commands included.
+  Frontend: polling ensures eventual consistency across tabs; large jumps animate.
+```
+
+ Frontend sanity: open the CloudFront URL in two tabs; (or better two different devices) and click increment; both converge.
 
 ## Security/IAM
 
