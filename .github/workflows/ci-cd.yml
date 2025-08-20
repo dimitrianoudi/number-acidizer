@@ -38,18 +38,15 @@ jobs:
 
       - name: Write Terraform auto tfvars
         run: |
-          cat > infra/terraform.auto.tfvars <<'EOF'
-          aws_region      = "${{ env.AWS_REGION }}"
-          project         = "number-acidizer"
-          account_id      = "${{ steps.acct.outputs.id }}"
-          lambda_image_uri = ""
-          EOF
+          printf 'aws_region = "%s"\nproject = "number-acidizer"\naccount_id = "%s"\nlambda_image_uri = ""\n' \
+            "${{ env.AWS_REGION }}" \
+            "${{ steps.acct.outputs.id }}" > infra/terraform.auto.tfvars
 
-          - name: Bootstrap Terraform remote state (S3 + DynamoDB)
-          env:
+      - name: Bootstrap Terraform remote state (S3 + DynamoDB)
+        env:
             REGION: ${{ env.AWS_REGION }}
             ACCOUNT_ID: ${{ steps.acct.outputs.id }}
-          run: |
+        run: |
             set -e
             TF_BUCKET="number-acidizer-tfstate-$ACCOUNT_ID-$REGION"
             TF_LOCK="number-acidizer-tflock"
