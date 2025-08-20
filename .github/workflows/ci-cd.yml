@@ -31,6 +31,20 @@ jobs:
           role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Get AWS Account ID
+        id: acct
+        run: |
+          echo "id=$(aws sts get-caller-identity --query Account --output text)" >> $GITHUB_OUTPUT
+
+      - name: Write Terraform auto tfvars
+        run: |
+          cat > infra/terraform.auto.tfvars <<'EOF'
+          aws_region      = "${{ env.AWS_REGION }}"
+          project         = "number-acidizer"
+          account_id      = "${{ steps.acct.outputs.id }}"
+          lambda_image_uri = ""
+          EOF
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -49,11 +63,6 @@ jobs:
         id: ecr
         working-directory: infra
         run: echo "repo=$(terraform output -raw ecr_repo_url)" >> $GITHUB_OUTPUT
-
-      - name: Get AWS Account ID
-        id: acct
-        run: |
-          echo "id=$(aws sts get-caller-identity --query Account --output text)" >> $GITHUB_OUTPUT
 
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2

@@ -1,4 +1,4 @@
-# GitHub OIDC provider (if not already present in your account)
+# GitHub OIDC provider
 resource "aws_iam_openid_connect_provider" "github" {
   url = "https://token.actions.githubusercontent.com"
 
