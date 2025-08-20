@@ -1,0 +1,36 @@
+{
+  "name": "number-acidizer-backend",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/dimitrianoudi/number-acidizer#readme",
+  "bugs": {
+    "url": "https://github.com/dimitrianoudi/number-acidizer/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dimitrianoudi/number-acidizer.git"
+  },
+  "license": "ISC",
+  "author": "Dimitri Anoudis",
+  "type": "module",
+  "main": "dist/handler.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "start": "node dist/handler.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.637.0",
+    "@aws-sdk/lib-dynamodb": "^3.637.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "@types/aws-lambda": "^8.10.130",
+    "@types/node": "^20.12.12",
+    "@types/uuid": "^9.0.7",
+    "eslint": "^9.5.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0"
+  }
+}
