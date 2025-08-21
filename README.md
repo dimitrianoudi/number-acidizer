@@ -96,3 +96,49 @@ docker build -t number-acidizer-backend .
 - `infra/` — Terraform for all resources (DynamoDB; Lambda; API Gateway; ECR; S3; CloudFront; GitHub OIDC role)
 - `.github/workflows/ci-cd.yml` — CI/CD pipeline
 - `scripts/recreate_commit_history.sh` — build the progressive commit history locally
+
+---
+
+## What’s deployed
+
+Dockerized TypeScript Lambda (image in ECR), API Gateway (HTTP API), DynamoDB (counter + idempotency), S3+CloudFront frontend.
+
+ACID: DynamoDB transaction + idempotency key (TTL) + bounds via ConditionExpression.
+
+CI/CD: GitHub Actions with OIDC → builds image, Terraform apply, builds frontend, uploads to S3, CloudFront invalidation.
+
+## How to test
+
+ Record URLs:
+
+```bash
+  API: https://gee6k5fvrb.execute-api.eu-north-1.amazonaws.com
+  Site: https://d2mvlfqf4mq6m.cloudfront.net
+```
+
+
+
+Quick API test
+
+```bash
+  API="https://gee6k5fvrb.execute-api.eu-north-1.amazonaws.com"
+  curl -s "$API/number"
+  curl -s -XPOST "$API/number" -H 'content-type: application/json' -d '{"action":"increment"}'
+```
+
+```bash
+  API: GET/POST /number as above; concurrency & idempotency sample commands included.
+  Frontend: polling ensures eventual consistency across tabs; large jumps animate.
+```
+
+ Frontend sanity: open the CloudFront URL in two tabs; (or better two different devices) and click increment; both converge.
+
+## Security/IAM
+
+Lambda role: dynamodb:GetItem, TransactWriteItems, PutItem, UpdateItem, and logs.
+
+CI role: scoped to tagged resources, ECR push, S3 put, CloudFront invalidate.
+
+## Ops
+
+Terraform remote state: S3 (+ DynamoDB lock) for consistent CI runs.
