@@ -95,7 +95,6 @@ docker build -t number-acidizer-backend .
 - `frontend/` — React + Vite + Zustand
 - `infra/` — Terraform for all resources (DynamoDB; Lambda; API Gateway; ECR; S3; CloudFront; GitHub OIDC role)
 - `.github/workflows/ci-cd.yml` — CI/CD pipeline
-- `scripts/recreate_commit_history.sh` — build the progressive commit history locally
 
 ---
 
